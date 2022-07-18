@@ -129,8 +129,8 @@ const ruleset: ruleset = {
 const client = new TwitterApi(process.env.BEARER_TOKEN || "").v2.readOnly;
 
 (async function start() {
-
-    updateRules()
+    
+    await updateRules()
     setInterval(updateRules, 10 * 60 * 1000)
     getStream()
 
@@ -145,7 +145,7 @@ async function updateRules() {
         const ids = rules.map((rule) => {
             return rule.id
         })
-        deleteRules(ids)
+        await deleteRules(ids)
     }
     await addRules(ruleset[nextRule])
     parsedData.currentRule = nextRule
@@ -154,6 +154,7 @@ async function updateRules() {
 
 async function getRules() {
     const rules = await client.streamRules()
+    console.log(rules)
     return rules.data ? rules.data : []
 }
 
@@ -162,12 +163,16 @@ async function addRules(rules: rule) {
     for (const [key, value] of Object.entries(rules)) {
         rulesToAdd.push({
             tag: value,
-            value: `context:${key}.*`
+            value: `context:${key}.* -is:retweet -is:quote -is:reply -has:mentions lang:en`
         })
     }
+    console.log(rulesToAdd)
     client.updateStreamRules({ add: rulesToAdd })
-        .then(() => {
-            console.log('rules added')
+        .then((response) => {
+            console.log(JSON.stringify(response))
+        })
+        .catch((err) => {
+            console.log(err)
         })
 }
 
@@ -178,34 +183,37 @@ async function deleteRules(rules: string[]) {
             console.log('rules deleted')
         })
 
-}
+} 
 
 async function getStream() {
-    const stream = await client.searchStream({
-        "tweet.fields": ['author_id', 'id', 'context_annotations']
-    })
-    // how do we want to handle writing this data??????
-    for await (let item of stream) {
+    try {
+        const stream = await client.searchStream({
+            "tweet.fields": ['author_id', 'id', 'context_annotations']
+        })
+        // how do we want to handle writing this data??????
+        let count = 0;
+        for await (let item of stream) {
 
-        // TODO: this shit
-        const contexts = item.data.context_annotations.reduce((prev, curr) => {
-            return {
-                entity: [ ...prev.entity, curr.entity.id ],
-                ...prev
-            }
-        }, { author: item.data.author_id, id: item.data.id, entity: [] })
+            const contexts = item.data.context_annotations.reduce((prev, curr) => {
+                return {
+                    entity: [ ...prev.entity, curr.entity.id ]
+                }
+            }, { entity: [] })
+            
+            // researhc dynamodb - write to db at each sort key / partition key 
+            // and update accompanying array with the new tweet id
+            // one db request per tweet brought
+            // can dynamo db handle this amount of data? is there a way to crunch this data during
+            // the 10 minute loop and then make a batch write at the end???
+            // writeToDb()
+            // write to db ->
+            // | sort key  | partition key | data   |
+            // | author_id | entity_id     | tweets |
 
-        console.log(contexts)
-
+        }
+    } catch (err) {
+        console.log(err)
     }
-
-    // current
-    // author | entity[] | tweet
-
-    // goal
-    // author | entity | tweets[]
-    // 123    | 5      | [1, 2, 3]
-    // abc    | j      | [h, g, f]
 }
 
 async function writeToDb(entity) {

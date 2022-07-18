@@ -1,15 +1,4 @@
 "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -52,15 +41,6 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
     function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
 };
 exports.__esModule = true;
 exports.dynamodb = void 0;
@@ -182,8 +162,8 @@ var client = new twitter_api_v2_1.TwitterApi(process.env.BEARER_TOKEN || "").v2.
 (function start() {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            updateRules();
-            setInterval(updateRules, 10 * 60 * 1000);
+            // await updateRules()
+            // setInterval(updateRules, 10 * 60 * 1000)
             getStream();
             return [2 /*return*/];
         });
@@ -201,14 +181,16 @@ function updateRules() {
                     return [4 /*yield*/, getRules()];
                 case 1:
                     rules = _a.sent();
-                    if (rules.length) {
-                        ids = rules.map(function (rule) {
-                            return rule.id;
-                        });
-                        deleteRules(ids);
-                    }
-                    return [4 /*yield*/, addRules(ruleset[nextRule])];
+                    if (!rules.length) return [3 /*break*/, 3];
+                    ids = rules.map(function (rule) {
+                        return rule.id;
+                    });
+                    return [4 /*yield*/, deleteRules(ids)];
                 case 2:
+                    _a.sent();
+                    _a.label = 3;
+                case 3: return [4 /*yield*/, addRules(ruleset[nextRule])];
+                case 4:
                     _a.sent();
                     parsedData.currentRule = nextRule;
                     fs.writeFileSync('./temp.json', JSON.stringify(parsedData));
@@ -225,6 +207,7 @@ function getRules() {
                 case 0: return [4 /*yield*/, client.streamRules()];
                 case 1:
                     rules = _a.sent();
+                    console.log(rules);
                     return [2 /*return*/, rules.data ? rules.data : []];
             }
         });
@@ -239,12 +222,15 @@ function addRules(rules) {
                 _b = _a[_i], key = _b[0], value = _b[1];
                 rulesToAdd.push({
                     tag: value,
-                    value: "context:".concat(key, ".*")
+                    value: "context:".concat(key, ".* -is:retweet -is:quote -is:reply -has:mentions lang:en")
                 });
             }
+            console.log(rulesToAdd);
             client.updateStreamRules({ add: rulesToAdd })
-                .then(function () {
-                console.log('rules added');
+                .then(function (response) {
+                console.log(JSON.stringify(response));
+            })["catch"](function (err) {
+                console.log(err);
             });
             return [2 /*return*/];
         });
@@ -264,16 +250,19 @@ function deleteRules(rules) {
 function getStream() {
     var e_1, _a;
     return __awaiter(this, void 0, void 0, function () {
-        var stream, stream_1, stream_1_1, item, contexts, e_1_1;
+        var stream, count, stream_1, stream_1_1, item, e_1_1, err_1;
         return __generator(this, function (_b) {
             switch (_b.label) {
-                case 0: return [4 /*yield*/, client.searchStream({
-                        "tweet.fields": ['author_id', 'id', 'context_annotations']
-                    })
-                    // how do we want to handle writing this data??????
-                ];
+                case 0:
+                    _b.trys.push([0, 14, , 15]);
+                    return [4 /*yield*/, client.searchStream({
+                            "tweet.fields": ['author_id', 'id', 'context_annotations']
+                        })
+                        // how do we want to handle writing this data??????
+                    ];
                 case 1:
                     stream = _b.sent();
+                    count = 0;
                     _b.label = 2;
                 case 2:
                     _b.trys.push([2, 7, 8, 13]);
@@ -283,10 +272,13 @@ function getStream() {
                 case 4:
                     if (!(stream_1_1 = _b.sent(), !stream_1_1.done)) return [3 /*break*/, 6];
                     item = stream_1_1.value;
-                    contexts = item.data.context_annotations.reduce(function (prev, curr) {
-                        return __assign({ entity: __spreadArray(__spreadArray([], prev.entity, true), [curr.entity.id], false) }, prev);
-                    }, { author: item.data.author_id, id: item.data.id, entity: [] });
-                    console.log(contexts);
+                    // TODO: this shit
+                    // const contexts = item.data.context_annotations.reduce((prev, curr) => {
+                    //     return {
+                    //         entity: [ ...prev.entity, curr.entity.id ]
+                    //     }
+                    // }, { entity: [] })
+                    console.log(count++);
                     _b.label = 5;
                 case 5: return [3 /*break*/, 3];
                 case 6: return [3 /*break*/, 13];
@@ -306,7 +298,12 @@ function getStream() {
                     if (e_1) throw e_1.error;
                     return [7 /*endfinally*/];
                 case 12: return [7 /*endfinally*/];
-                case 13: return [2 /*return*/];
+                case 13: return [3 /*break*/, 15];
+                case 14:
+                    err_1 = _b.sent();
+                    console.log(err_1);
+                    return [3 /*break*/, 15];
+                case 15: return [2 /*return*/];
             }
         });
     });
