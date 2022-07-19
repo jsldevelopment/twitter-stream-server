@@ -190,42 +190,38 @@ async function getStream() {
         const stream = await client.searchStream({
             "tweet.fields": ['author_id', 'id', 'context_annotations']
         })
-        // how do we want to handle writing this data??????
-        let count = 0;
+    
         for await (let item of stream) {
 
-            const contexts = item.data.context_annotations.reduce((prev, curr) => {
-                return {
-                    entity: [ ...prev.entity, curr.entity.id ]
-                }
-            }, { entity: [] })
+            if (item.data.text.length >= 180) {
             
-            // researhc dynamodb - write to db at each sort key / partition key 
-            // and update accompanying array with the new tweet id
-            // one db request per tweet brought
-            // can dynamo db handle this amount of data? is there a way to crunch this data during
-            // the 10 minute loop and then make a batch write at the end???
-            // writeToDb()
-            // write to db ->
-            // | sort key  | partition key | data   |
-            // | author_id | entity_id     | tweets |
+                item.data.context_annotations.forEach((entity) => {
 
+                    writeToDb({
+                        author: item.data.author_id,
+                        entity: entity.entity.id,
+                        tweet: [item.data.id]
+                    })
+
+                })
+            }
         }
     } catch (err) {
         console.log(err)
     }
 }
 
-async function writeToDb(entity) {
+async function writeToDb(data) {
 
-    dynamodb.batchWrite({
-        RequestItems: {
-            "Entity": [{
-                PutRequest: {
-                    Item: entity
-                }
-            }]
-        }
+    dynamodb.update({
+        TableName: 'Entities',
+        Key: {
+            author: data.author,
+            entity: data.entity
+        },
+        UpdateExpression: 'SET #data = list_append(#data, :c)',
+        ExpressionAttributeNames: { '#data': "tweet" },
+        ExpressionAttributeValues: { ':c': [data.tweet] }
     }, (err, data) => {
         if (err) console.log(err)
         else console.log(data)

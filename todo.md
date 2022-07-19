@@ -11,13 +11,12 @@ ui -
 server -
     what routes are required to grab entity data?
 
-used to create and compare users based on entitie count.
+used to create and compare users based on entity count.
 ```js
 {
     author: number, // sort key
     tweet_id: number, // partition key
     tweets: []
-
 }
 ```
 

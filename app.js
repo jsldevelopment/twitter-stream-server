@@ -162,10 +162,14 @@ var client = new twitter_api_v2_1.TwitterApi(process.env.BEARER_TOKEN || "").v2.
 (function start() {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            // await updateRules()
-            // setInterval(updateRules, 10 * 60 * 1000)
-            getStream();
-            return [2 /*return*/];
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, updateRules()];
+                case 1:
+                    _a.sent();
+                    setInterval(updateRules, 10 * 60 * 1000);
+                    getStream();
+                    return [2 /*return*/];
+            }
         });
     });
 }());
@@ -250,35 +254,37 @@ function deleteRules(rules) {
 function getStream() {
     var e_1, _a;
     return __awaiter(this, void 0, void 0, function () {
-        var stream, count, stream_1, stream_1_1, item, e_1_1, err_1;
+        var stream, _loop_1, stream_1, stream_1_1, e_1_1, err_1;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     _b.trys.push([0, 14, , 15]);
                     return [4 /*yield*/, client.searchStream({
                             "tweet.fields": ['author_id', 'id', 'context_annotations']
-                        })
-                        // how do we want to handle writing this data??????
-                    ];
+                        })];
                 case 1:
                     stream = _b.sent();
-                    count = 0;
                     _b.label = 2;
                 case 2:
                     _b.trys.push([2, 7, 8, 13]);
+                    _loop_1 = function () {
+                        var item = stream_1_1.value;
+                        if (item.data.text.length >= 180) {
+                            item.data.context_annotations.forEach(function (entity) {
+                                writeToDb({
+                                    author: item.data.author_id,
+                                    entity: entity.entity.id,
+                                    tweet: [item.data.id]
+                                });
+                            });
+                        }
+                    };
                     stream_1 = __asyncValues(stream);
                     _b.label = 3;
                 case 3: return [4 /*yield*/, stream_1.next()];
                 case 4:
                     if (!(stream_1_1 = _b.sent(), !stream_1_1.done)) return [3 /*break*/, 6];
-                    item = stream_1_1.value;
-                    // TODO: this shit
-                    // const contexts = item.data.context_annotations.reduce((prev, curr) => {
-                    //     return {
-                    //         entity: [ ...prev.entity, curr.entity.id ]
-                    //     }
-                    // }, { entity: [] })
-                    console.log(count++);
+                    _loop_1();
                     _b.label = 5;
                 case 5: return [3 /*break*/, 3];
                 case 6: return [3 /*break*/, 13];
@@ -308,17 +314,18 @@ function getStream() {
         });
     });
 }
-function writeToDb(entity) {
+function writeToDb(data) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
-            exports.dynamodb.batchWrite({
-                RequestItems: {
-                    "Entity": [{
-                            PutRequest: {
-                                Item: entity
-                            }
-                        }]
-                }
+            exports.dynamodb.update({
+                TableName: 'Entities',
+                Key: {
+                    author: data.author,
+                    entity: data.entity
+                },
+                UpdateExpression: 'SET #data = list_append(#data, :c)',
+                ExpressionAttributeNames: { '#data': "tweet" },
+                ExpressionAttributeValues: { ':c': [data.tweet] }
             }, function (err, data) {
                 if (err)
                     console.log(err);
