@@ -58,102 +58,117 @@ AWS.config.credentials = credentials;
 exports.dynamodb = new AWS.DynamoDB.DocumentClient();
 // study 131 - unified twitter taxonomy
 // what is a vertical vs a category
+// const ruleset: ruleset = {
+//     1: {
+//         '122': 'fictional character',
+//         '130': 'multimedia franchise',
+//         '71': 'video game',
+//         '78': 'video game interest'
+//     }
+// }
 var ruleset = {
+    // tv
     1: {
         '3': 'tv shows',
         '4': 'tv episodes',
-        '6': 'sports events',
-        '10': 'person',
-        '11': 'sport',
-        '12': 'sports teams',
-        '13': 'place',
         '22': 'tv genres',
         '23': 'tv channels',
-        '26': 'sports league'
+        '172': 'global tv show',
+        '86': 'movie',
+        '87': 'movie genre',
+        '95': 'tv channel [entity service]',
+        '117': 'movie festival',
+        '56': 'actor'
     },
+    // politics
     2: {
-        '27': 'american football game',
-        '28': 'nfl football game',
         '29': 'events',
         '31': 'community',
         '35': 'politicians',
         '38': 'political race',
-        '39': 'basketball game',
-        '40': 'sports series',
-        '44': 'baseball game',
-        '45': 'brand vertical'
+        '88': 'political body'
     },
-    '3': {
-        '46': 'brand category',
-        '47': 'brand',
-        '48': 'product',
-        '54': 'musician',
-        '55': 'music genre',
-        '56': 'actor',
-        '58': 'entertainment personality',
-        '60': 'athlete',
-        '65': 'interests and hobbies vertical',
-        '66': 'interests and hobbies catergory'
-    },
-    '4': {
-        '67': 'interests and hobbies',
-        '68': 'hockey game',
+    // video games
+    3: {
+        '115': 'video game conference',
+        '116': 'video game tournament',
         '71': 'video game',
         '78': 'video game interest',
         '79': 'video game hardware',
-        '83': 'cricket match',
-        '84': 'book',
-        '85': 'book genre',
-        '86': 'movie',
-        '87': 'movie genre'
-    },
-    '5': {
-        '88': 'political body',
-        '89': 'music album',
-        '90': 'radio station',
-        '91': 'podcast',
-        '92': 'sports personality',
-        '93': 'coach',
-        '94': 'journalist',
-        '95': 'tv channel [entity service]',
-        '109': 'reoccuring trends',
-        '110': 'viral accounts'
-    },
-    '6': {
-        '114': 'concert',
-        '115': 'video game conference',
-        '116': 'video game tournament',
-        '117': 'movie festival',
-        '118': 'awards show',
-        '119': 'holiday',
-        '120': 'digital creator',
-        '122': 'fictional character',
-        '130': 'multimedia franchise',
         '136': 'video game personality'
     },
-    '7': {
+    // esports
+    4: {
         '137': 'esports team',
         '138': 'esports player',
-        '139': 'fan community',
-        '149': 'esports league',
+        '149': 'esports league'
+    },
+    // sports
+    5: {
+        '6': 'sports events',
+        '11': 'sport',
+        '12': 'sports teams',
+        '26': 'sports league',
+        '40': 'sports series',
+        '92': 'sports personality',
+        '60': 'athlete'
+    },
+    // sports 2
+    6: {
+        '27': 'american football game',
+        '28': 'nfl football game',
+        '44': 'baseball game',
+        '39': 'basketball game',
+        '68': 'hockey game',
+        '83': 'cricket match'
+    },
+    // hobbies
+    7: {
+        '84': 'book',
+        '85': 'book genre',
         '152': 'food',
+        '174': 'digital assets & crypto',
+        '164': 'fields of study',
+        '165': 'technology',
+        '166': 'stocks',
+        '162': 'exercise & fitness',
+        '163': 'travel'
+    },
+    // music
+    8: {
+        '89': 'music album',
+        '90': 'radio station',
+        '54': 'musician',
+        '55': 'music genre',
+        '114': 'concert'
+    },
+    // pop culture
+    9: {
+        '118': 'awards show',
+        '122': 'fictional character',
+        '130': 'multimedia franchise',
+        '139': 'fan community',
+        '109': 'reoccuring trends'
+    },
+    // pop culture 2
+    10: {
+        '58': 'entertainment personality',
+        '91': 'podcast',
+        '94': 'journalist',
+        '110': 'viral accounts',
+        '120': 'digital creator'
+    },
+    11: {
         '155': 'weather',
         '156': 'cities',
         '157': 'colleges & universities',
         '158': 'points of interest',
         '159': 'states'
     },
-    '8': {
+    12: {
         '160': 'countries',
-        '162': 'exercise & fitness',
-        '163': 'travel',
-        '164': 'fields of study',
-        '165': 'technology',
-        '166': 'stocks',
         '167': 'animals',
         '171': 'local news',
-        '172': 'global tv show',
-        '174': 'digital assets & crypto',
         '175': 'emergency events'
     }
 };
@@ -211,7 +226,6 @@ function getRules() {
                 case 0: return [4 /*yield*/, client.streamRules()];
                 case 1:
                     rules = _a.sent();
-                    console.log(rules);
                     return [2 /*return*/, rules.data ? rules.data : []];
             }
         });
@@ -229,7 +243,6 @@ function addRules(rules) {
                     value: "context:".concat(key, ".* -is:retweet -is:quote -is:reply -has:mentions lang:en")
                 });
             }
-            console.log(rulesToAdd);
             client.updateStreamRules({ add: rulesToAdd })
                 .then(function (response) {
                 console.log(JSON.stringify(response));
@@ -258,58 +271,73 @@ function getStream() {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _b.trys.push([0, 14, , 15]);
-                    return [4 /*yield*/, client.searchStream({
-                            "tweet.fields": ['author_id', 'id', 'context_annotations']
-                        })];
+                    console.log('getting stream');
+                    _b.label = 1;
                 case 1:
-                    stream = _b.sent();
-                    _b.label = 2;
+                    _b.trys.push([1, 15, , 16]);
+                    return [4 /*yield*/, client.searchStream({
+                            "tweet.fields": ['author_id', 'id', 'context_annotations', 'possibly_sensitive', 'created_at']
+                        })];
                 case 2:
-                    _b.trys.push([2, 7, 8, 13]);
+                    stream = _b.sent();
+                    _b.label = 3;
+                case 3:
+                    _b.trys.push([3, 8, 9, 14]);
                     _loop_1 = function () {
                         var item = stream_1_1.value;
-                        if (item.data.text.length >= 180) {
-                            item.data.context_annotations.forEach(function (entity) {
-                                writeToDb({
-                                    author: item.data.author_id,
-                                    entity: entity.entity.id,
-                                    tweet: [item.data.id]
+                        try {
+                            console.log('item found');
+                            if (item.data.text.length >= 180 && !item.data.possibly_sensitive) {
+                                var entities_1 = [];
+                                item.data.context_annotations.forEach(function (item) {
+                                    if (!entities_1.includes(item.entity.id))
+                                        entities_1.push(item.entity.id);
                                 });
-                            });
+                                console.log('writing enity to db');
+                                entities_1.forEach(function (entity) {
+                                    writeToDb({
+                                        entity: entity,
+                                        author: item.data.author_id,
+                                        tweet: item.data.id
+                                    });
+                                });
+                            }
+                        }
+                        catch (err) {
+                            console.log(err);
                         }
                     };
                     stream_1 = __asyncValues(stream);
-                    _b.label = 3;
-                case 3: return [4 /*yield*/, stream_1.next()];
-                case 4:
-                    if (!(stream_1_1 = _b.sent(), !stream_1_1.done)) return [3 /*break*/, 6];
+                    _b.label = 4;
+                case 4: return [4 /*yield*/, stream_1.next()];
+                case 5:
+                    if (!(stream_1_1 = _b.sent(), !stream_1_1.done)) return [3 /*break*/, 7];
                     _loop_1();
-                    _b.label = 5;
-                case 5: return [3 /*break*/, 3];
-                case 6: return [3 /*break*/, 13];
-                case 7:
+                    _b.label = 6;
+                case 6: return [3 /*break*/, 4];
+                case 7: return [3 /*break*/, 14];
+                case 8:
                     e_1_1 = _b.sent();
                     e_1 = { error: e_1_1 };
-                    return [3 /*break*/, 13];
-                case 8:
-                    _b.trys.push([8, , 11, 12]);
-                    if (!(stream_1_1 && !stream_1_1.done && (_a = stream_1["return"]))) return [3 /*break*/, 10];
-                    return [4 /*yield*/, _a.call(stream_1)];
+                    return [3 /*break*/, 14];
                 case 9:
+                    _b.trys.push([9, , 12, 13]);
+                    if (!(stream_1_1 && !stream_1_1.done && (_a = stream_1["return"]))) return [3 /*break*/, 11];
+                    return [4 /*yield*/, _a.call(stream_1)];
+                case 10:
                     _b.sent();
-                    _b.label = 10;
-                case 10: return [3 /*break*/, 12];
-                case 11:
+                    _b.label = 11;
+                case 11: return [3 /*break*/, 13];
+                case 12:
                     if (e_1) throw e_1.error;
                     return [7 /*endfinally*/];
-                case 12: return [7 /*endfinally*/];
-                case 13: return [3 /*break*/, 15];
-                case 14:
+                case 13: return [7 /*endfinally*/];
+                case 14: return [3 /*break*/, 16];
+                case 15:
                     err_1 = _b.sent();
                     console.log(err_1);
-                    return [3 /*break*/, 15];
-                case 15: return [2 /*return*/];
+                    return [3 /*break*/, 16];
+                case 16: return [2 /*return*/];
             }
         });
     });
@@ -317,20 +345,21 @@ function getStream() {
 function writeToDb(data) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
+            console.log(data);
             exports.dynamodb.update({
-                TableName: 'Entities',
+                TableName: 'Authors',
                 Key: {
-                    author: data.author,
-                    entity: data.entity
+                    entity: data.entity,
+                    author: data.author
                 },
-                UpdateExpression: 'SET #data = list_append(#data, :c)',
-                ExpressionAttributeNames: { '#data': "tweet" },
-                ExpressionAttributeValues: { ':c': [data.tweet] }
-            }, function (err, data) {
+                UpdateExpression: 'SET tweets = list_append(if_not_exists(tweets, :empty_list), :my_value)',
+                ExpressionAttributeValues: {
+                    ":my_value": [data.tweet],
+                    ":empty_list": []
+                }
+            }, function (err) {
                 if (err)
                     console.log(err);
-                else
-                    console.log(data);
             });
             return [2 /*return*/];
         });

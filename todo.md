@@ -1,31 +1,30 @@
-determine data -
-    what do we need to know?
-    entities? domains? users?
-    
-dynamodb -
-    how to store this? tables etc
-
-ui -
-    best way to display this data and connect users across application and twitter
-
-server -
-    what routes are required to grab entity data?
-
-used to create and compare users based on entity count.
-```js
-{
-    author: number, // sort key
-    tweet_id: number, // partition key
-    tweets: []
+```ts
+Tweets: {
+    author: string, // partition key
+    entityCount: {
+        [key: string]: number // how many times the users tweets include a given entity
+    }
 }
 ```
 
-//
-```js
-{
-    id: number, // sort key
-    // profile user based on timeline
+```ts
+Users: {
+    id: string, // partition key
+    username: name, // display name
+    entityCount: {
+        [key: string]: number // how many times the users tweets include a given entity
+    }
 }
 ```
+Creating the User Profile ->
 
-[dynamodb](https://www.tutorialspoint.com/dynamodb/dynamodb_overview.htm)
+When a user logs in to the app, the application will perform a DB Read to determine whether or not this is their first visit to the application.
+
+First time users:
+First time users will have their profile fetched from the api, and a new DB entry will be created on the Users table with their id and username.
+After this, their timeline will be fetched. (Up to last 5k tweets.)
+The timeline will then be parsed into entities, and an entityCount object will be created and added to their username DB record.
+From here, the app will navigate the user to the home page.
+
+Returning users:
+Returning users will be sent to the home page (for now.)
